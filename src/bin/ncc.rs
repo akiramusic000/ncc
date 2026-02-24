@@ -1,35 +1,41 @@
 use anyhow::Context;
 use mktemp::Temp;
 use regex::Regex;
-use std::{env::args, fs, path::Path, process::Command};
+use std::{env::args, ffi::OsStr, fs, path::Path, process::Command};
 
 fn main() -> anyhow::Result<()> {
     let mut temps = Vec::new();
 
     let args = args()
         .skip(1)
-        .map(|arg| {
+        .filter_map(|arg| {
             let path = Path::new(&arg);
             if !path.exists() {
-                return arg;
+                return Some(arg);
+            }
+            if path.extension() != Some(OsStr::new("nc")) {
+                return Some(arg);
             }
 
             let compiled = compile(path);
             let temp = Temp::new_path().release();
             fs::write(&temp, compiled).expect("error!");
 
-            let arg = temp.display().to_string();
             temps.push(temp);
-            arg
+
+            None
         })
         .collect::<Vec<_>>();
 
-    let mut command = Command::new("clang")
-        .args(["-x", "c"])
-        .args(args)
-        .spawn()
-        .context("failed clang spawn!")?;
-    command.wait()?;
+    let mut command = Command::new("clang");
+    command.args(args);
+
+    if !temps.is_empty() {
+        command.args(["-x", "c"]).args(&temps);
+    }
+
+    let mut child = command.spawn().context("failed clang spawn!")?;
+    child.wait()?;
 
     for temp in temps {
         fs::remove_file(temp).context("failed temp rm!")?;
