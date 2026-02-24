@@ -1,0 +1,13 @@
+[package]
+name = "ncc"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = { version = "1.0.102", features = ["backtrace"] }
+clap = { version = "4.5.60", features = ["derive"] }
+lang-c = "0.15.1"
+mktemp = "0.5.1"
+notify = "8.2.0"
+regex = "1.12.3"
+text-span = "2.1.0"
